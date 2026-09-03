@@ -2,20 +2,29 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Therapy from "../components/Therapy";
 
+const API_URL = import.meta.env.API_URL;
+
 function Home() {
   const [inputText, setInputText] = useState("");
   const [predictedStatus, setPredictedStatus] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleInputChange = (e) => {
     setInputText(e.target.value);
   };
 
   const handleSubmit = async () => {
+    if (!inputText.trim()) return;
+    setLoading(true);
+    setError("");
+    setPredictedStatus("");
     try {
-      const response = await fetch("http://localhost:8000/predict", {
+      const response = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({ text: inputText }),
       });
@@ -24,8 +33,12 @@ function Home() {
       setPredictedStatus(data.predicted_status);
     } catch (error) {
       console.error("Error making request:", error);
+      setError("Failed to connect. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-50 via-blue-100 to-blue-200 p-8 flex flex-col items-center">
@@ -65,11 +78,23 @@ function Home() {
       <motion.button
         onClick={handleSubmit}
         className="bg-gradient-to-r from-green-400 to-green-600 text-white px-8 py-4 rounded-lg shadow-lg hover:scale-105 transform transition-transform duration-200 hover:shadow-xl"
-        whileHover={{ scale: 1.1 }}
+        whileHover={{ scale: loading ? 1 : 1.1 }}
         whileTap={{ scale: 0.95 }}
+        disabled={loading}
       >
-        Detect
+        {loading ? "Analyzing..." : "Detect"}
       </motion.button>
+
+      {/* Error Message */}
+      {error && (
+        <motion.p
+          className="mt-4 text-red-600 font-semibold text-center max-w-md"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          ⚠️ {error}
+        </motion.p>
+      )}
 
       {/* Display Predicted Status */}
       {predictedStatus && (
